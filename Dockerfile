@@ -1,7 +1,7 @@
-FROM docker-release.otlabs.fr/infra/docker-ubuntu:16.04-20180215
+FROM ubuntu:16.04
 
 LABEL maintainer="Claudiu <klau2005@gmail.com>"
-LABEL version="0.8.0"
+LABEL version="0.8.1"
 
 WORKDIR /prom_exporter
 

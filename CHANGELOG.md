@@ -1,3 +1,11 @@
+## [0.8.1] - 2019.03.25
+### Changed
+
+### Added
+
+### Fixed
+- fixed KeyError when trying to delete inexistent global_labels section from config file"
+
 ## [0.8.0] - 2019.03.22
 ### Changed
 - if the program can't find any valid JSON config files, it will just log this and continue; previously it crashed

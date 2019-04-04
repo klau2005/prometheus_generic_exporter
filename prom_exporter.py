@@ -13,7 +13,7 @@ except ImportError:
     sys.exit(65)
 
 __author__ = "Claudiu Tomescu"
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 __date__ = "March 2019"
 __maintainer__ = "Claudiu Tomescu"
 __email__ = "klau2005@gmail.com"
@@ -194,9 +194,6 @@ def parse_config_file(f):
         if "component" in script["labels"].keys():
             script["labels"]["user_defined_component"] = script["labels"].pop("component")
             logging.warning("Found <component> label defined in config file, automatically renamed to <user_defined_component>")
-
-    # remove the global_labels section
-    del scripts_dict["global_labels"]
 
     return scripts_dict["scripts"]
 
