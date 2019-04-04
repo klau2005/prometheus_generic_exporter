@@ -1,6 +1,6 @@
 Custom collector written in Python 3 that can run any external script/command and export the output as prometheus metrics. The scripts are run at the desired interval by the scheduler, like a cron job.
 
-For this to run, it needs a `scripts.json` file with the following format:
+For this to run, it needs one or more `*.json` files with the following format:
 
 ```
 {
@@ -21,8 +21,11 @@ For this to run, it needs a `scripts.json` file with the following format:
 ```
 
 In this file, we define each external script/command that needs to be run as an item with a couple of parameters: the script name (keep in mind that it should have execute permissions), the interval at which it will be run by the scheduler (in seconds), the desired prometheus metric name, the parameters that need to be passed to the script (if any) and finally the prometheus specific details, HELP and metric TYPE.
+`interval`, `TYPE`, `HELP` can be omited, they have default values (`interval` - 600 seconds, `TYPE` - gauge and a generic `HELP` message. Also, the `params` section can be omitted altogether if the script takes no parameters.
 
-The scripts can either be run as-is, the collector captures their output and if integer or float it will just expose the metric with the desired labels added (global ones are applied for all the scripts in the file). For better usability the scripts to be run can be modified to output JSON data instead of a simple value. This is useful in case the script can return more than one value in a single run (for ex. one end-point that returns the status for multiple components in one shot). Example JSON output below:
+If we have the same label both in the main `global_labels` section and in a `script` section, the global one will be overwritten.
+
+The scripts can either be run as-is, the collector captures their output and if integer or float it will just expose the metric with the desired labels added (global ones are applied for all the scripts in the file). iIn this case, one more label named `component` with value `main` will be added by default. For better usability the scripts to be run can be modified to output JSON data instead of a simple value. This is useful in case the script can return more than one value in a single run (for ex. one end-point that returns the status for multiple components in one shot). Example JSON output below:
 
 `{'health': 200, 'DB': 1, 'Cassandra': 0, 'HSM': 1}`
 

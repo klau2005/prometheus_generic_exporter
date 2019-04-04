@@ -1,3 +1,25 @@
+## [0.8.0] - 2019.03.22
+### Changed
+- if the program can't find any valid JSON config files, it will just log this and continue; previously it crashed
+- simplify testing for the JSON config file
+- exit codes are now compliant with recommendations
+- metric TYPE and HELP sections can be omitted; they now have default values
+- interval value can be omitted, it will be set to 600 seconds by default
+
+### Added
+- accept more than one config file
+
+### Fixed
+- if we have same label in global section and local one, the local one will override the global; previously it generated a conflict
+- params section can be omitted (if the script takes no parameters); previously the config file needed a '"params": []' section
+
+## [0.7.1] - 2019.03.01
+### Changed
+- upgraded requests module to version 2.20.0 - CVE-2018-18074
+
+### Added
+- added curl package
+
 ## [0.7] - 2018.09.28
 ### Changed
 - in case of scripts returning JSON with status for multiple checks/components, we are now adding those as a new label

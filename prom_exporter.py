@@ -1,7 +1,7 @@
 '''Run external scripts/commands and export their output as prometheus metrics'''
 
 try:
-    import ast, os, sys, json, time
+    import ast, glob, json, os, sys, time
     import logging
     import schedule
     import threading
@@ -10,44 +10,45 @@ try:
     from prometheus_client import start_http_server, Counter, Gauge
 except ImportError:
     print("could not load needed modules, exiting...")
-    sys.exit(2)
+    sys.exit(65)
 
 __author__ = "Claudiu Tomescu"
-__version__ = "0.7"
-__date__ = "September 2018"
+__version__ = "0.8.0"
+__date__ = "March 2019"
 __maintainer__ = "Claudiu Tomescu"
 __email__ = "klau2005@gmail.com"
 __status__ = "Production"
 
 ### Variables ###
-scripts_file = "configs/scripts.json"
+configs_list = glob.glob("configs/*.json")
 cwd = os.getcwd()
 job_queue = queue.Queue()
 metrics_port = os.environ.get("METRICS_PORT", 8000)
+default_interval = 600
+default_metric_type = "Gauge"
+default_metric_help = "Generic metric HELP"
 log_levels = {"CRITICAL": 50, "ERROR": 40, "WARNING": 30, "INFO": 20, "DEBUG": 10, "NOTSET": 0}
 log_level_name = os.environ.get("LOG_LEVEL", "INFO")
 log_level = log_levels[log_level_name]
 log_fmt = "[%(asctime)s] [%(levelname)s] %(message)s"
 
 logging.basicConfig(level = log_level, datefmt = "%Y-%m-%d %H:%M:%S %z", format = log_fmt)
-logging.info("Starting program version {0}".format(__version__))
+logging.info("Starting Generic Prometheus Exporter version \"{0}\"".format(__version__))
 logging.info("Using log level {0}".format(log_level_name))
 # for the schedule module, we set the log level as WARNING as it is too noisy at INFO level
 schedule.logger.setLevel(logging.WARNING)
 
 # list to hold all instantiated prometheus metric objects
 prom_metrics_list = []
-# dictionary that will hold the global labels
-global_labels_dict = {}
-# and we save the keys in a list (we'll use it later when we create the metric objects)
-global_labels_keys_list = []
 
 ### Functions ###
 def run_ext_script(**kwargs):
-    ''' run the external scripts, get their exit code and
+    '''
+    run the external scripts, get their exit code and
     in case it is not 0, increase the error metric for that item; else it will
     convert the output as dictionary, instantiate one prometheus metric for each
-    component the script tests and expose the metrics as prometheus metrics '''
+    component the script tests and expose the metrics as prometheus metrics
+    '''
 
     cmd = kwargs["cmd"]
     # run gt command for each component we need to test and capture status code and output
@@ -60,16 +61,16 @@ def run_ext_script(**kwargs):
     item = kwargs["item"]
     prom_metric_name = item["metric"]
     prometheus_metric_errors = kwargs["prom_metric_err"]
-    metric_type = item["TYPE"]
-    metric_help = item["HELP"]
-    local_labels_dict = kwargs["local_labels_dict"]
-    local_labels_keys_list = kwargs["local_labels_keys_list"]
+    metric_type = item.get("TYPE", default_metric_type)
+    metric_help = item.get("HELP", default_metric_help)
+    labels_dict = kwargs["labels_dict"]
+    labels_list = kwargs["labels_list"]
 
     # test if exit code is success
     if exit_code != 0:
         logging.warning("External command '{0}' returned error:".format(cmd))
         logging.warning("Result: '{0}'".format(result))
-        prometheus_metric_errors.labels(**local_labels_dict).inc()
+        prometheus_metric_errors.labels(**labels_dict).inc()
     else:
         # if external script/command exited with 0, we start processing the result;
         # the subprocess function returns the output as string; we can see what this string
@@ -81,17 +82,17 @@ def run_ext_script(**kwargs):
             logging.warning("External command returned unsupported output type:")
             logging.warning("Output: '{0}', Type: '{1}'".format(output, type(output)))
             # and we increment the metric error value for this item
-            prometheus_metric_errors.labels(**local_labels_dict).inc()
+            prometheus_metric_errors.labels(**labels_dict).inc()
             return
         # first check if the output returned by script is json/dict
         if isinstance(output, dict):
             for key,value in output.items():
                 # we set the value of the <key> for the "component" label in the labels dict
-                local_labels_dict["component"] = key
+                labels_dict["component"] = key
 
                 try:
                     # first we try to instantiate the metrics
-                    prom_metric_obj = Gauge(prom_metric_name, metric_help, local_labels_keys_list)
+                    prom_metric_obj = Gauge(prom_metric_name, metric_help, labels_list)
                 except ValueError:
                     # if a metric with this name was already instantiated, we can find
                     # it in the global list defined above
@@ -99,22 +100,22 @@ def run_ext_script(**kwargs):
                         if obj._name == prom_metric_name:
                             # try to set the metric value
                             try:
-                                obj.labels(**local_labels_dict).set(output[key])
+                                obj.labels(**labels_dict).set(output[key])
                             except ValueError:
                                 # if we've come so far, it means the metric was already instantiated
                                 # and we're trying to use different labels for the same metric name
                                 logging.error("Invalid combination of metric{labels}:")
-                                logging.error("{0}{1}".format(prom_metric_name, local_labels_dict))
+                                logging.error("{0}{1}".format(prom_metric_name, labels_dict))
                 else:
                     # in case the metric was instantiated for the first time, we save it in a global
                     # list and set it's value based on the script output
                     try:
-                        prom_metric_obj.labels(**local_labels_dict).set(output[key])
+                        prom_metric_obj.labels(**labels_dict).set(output[key])
                     except ValueError:
                         # ValueError here probably means the labels defined when the prometheus
                         # metric was instantiated don't match the ones passed when setting the metric value
                         logging.error("Labels mismatch:")
-                        logging.error("{0} - {1}".format(local_labels_keys_list, local_labels_dict.keys()))
+                        logging.error("{0} - {1}".format(labels_list, labels_dict.keys()))
                     else:
                         prom_metrics_list.append(prom_metric_obj)
 
@@ -128,7 +129,7 @@ def run_ext_script(**kwargs):
             else:
                 try:
                     # first we try to instantiate the metrics
-                    prom_metric_obj = Gauge(prom_metric_name, metric_help, local_labels_keys_list)
+                    prom_metric_obj = Gauge(prom_metric_name, metric_help, labels_list)
                 except ValueError:
                     # if a metric with this name was already instantiated, we can find
                     # it in the global list defined above
@@ -136,112 +137,115 @@ def run_ext_script(**kwargs):
                         if obj._name == prom_metric_name:
                             # try to set the metric value
                             try:
-                                obj.labels(**local_labels_dict).set(output)
+                                obj.labels(**labels_dict).set(output)
                             except ValueError:
                                 # if we've come so far, it means the metric was already instantiated
                                 # and we're trying to use different labels for the same metric name
                                 logging.error("Invalid combination of metric{labels}:")
-                                logging.error("{0}{1}".format(prom_metric_name, local_labels_dict))
+                                logging.error("{0}{1}".format(prom_metric_name, labels_dict))
                 else:
                     # in case the metric was instantiated for the first time, we save it in a global
                     # list and set it's value based on the script output
                     prom_metrics_list.append(prom_metric_obj)
-                    prom_metric_obj.labels(**local_labels_dict).set(output)
+                    prom_metric_obj.labels(**labels_dict).set(output)
 
-def main():
+def parse_config_file(f):
+    '''
+    load the config file in json format, parse it and return a list from the scripts section;
+    it does format validation and it merges any existing global labels with the local ones,
+    overriding the global with the local
+    '''
+
     # Load json file with list of scripts to schedule and run
     try:
-        with open(scripts_file) as f:
-            scripts_dict = f.read()
-            # properly load the file as dictionary
-            scripts_dict = ast.literal_eval(scripts_dict)
-    except FileNotFoundError:
-        logging.critical("{0} file could not be found in {1}/configs/ directory, exiting...".format(scripts_file, cwd))
-        sys.exit(2)
+        with open(f) as config:
+            scripts_dict = json.load(config)
     except PermissionError:
-        logging.critical("No permission to read {0}/configs/{1} file, exiting...".format(cwd, scripts_file))
-        sys.exit(3)
+        logging.error("No permission to read {0}/{1} file".format(cwd, f))
+        return []
+    # if file is not in valid JSON format, log this and exit
+    except ValueError:
+        logging.error("Provided config file {0}/{1} is not a valid JSON file".format(cwd, f))
+        return []
 
-    global global_labels_dict
-    global global_labels_keys_list
-    global job_queue
-
-    # check once more that the file we just read is a valid JSON file
-    if not isinstance(scripts_dict, dict):
-        logging.critical("Provided config file {0}/configs/{1} is not a valid JSON file, exiting...".format(cwd, scripts_file))
-        sys.exit(4)
-
-    # first we create a dictionary to hold the global labels
+    # start validating the config file structure
     try:
-        global_labels_dict = scripts_dict["global_labels"]
+        scripts_list = scripts_dict["scripts"]
     except KeyError:
-        # if there is no such key, we set some empty dictionary/list objects
-        global_labels_dict = {}
-        global_labels_keys_list = []
-    else:
-        # and we save the keys in a list (we'll use it later when we create the metric objects)
-        global_labels_keys_list = list(global_labels_dict.keys())
+        logging.error("Provided config file {0}/{1} does not have the proper structure".format(cwd, f))
+        return []
+    if not isinstance(scripts_list, list):
+        logging.error("Provided config file {0}/{1} does not have the proper structure".format(cwd, f))
+        return []
+
+    # check if the file has a global_labels section
+    global_labels = scripts_dict.get("global_labels", {})
+
+    # iterate over each itm in the scripts list and add the global labels to the local ones (where they exist)
+    for script in scripts_list:
+        local_labels = script.get("labels", {})
+        labels = global_labels.copy()
+        labels.update(local_labels)
+        script["labels"] = labels
+
+        # we add a new label named "component" but first we check that no label named like this was already defined
+        # in the config file; in that case, we don't want to delete the original but rename the label name and
+        # preserve it's value; we also write a WARNING log entry describing this situation
+        if "component" in script["labels"].keys():
+            script["labels"]["user_defined_component"] = script["labels"].pop("component")
+            logging.warning("Found <component> label defined in config file, automatically renamed to <user_defined_component>")
+
+    # remove the global_labels section
+    del scripts_dict["global_labels"]
+
+    return scripts_dict["scripts"]
+
+def main():
+
+    global configs_list
+    global job_queue
 
     # define list that will be the main object loaded in memory with all details
     # related to the scripts that will be run, interval, arguments, etc
     main_list = []
 
-    # add the scripts to main list
-    for script in scripts_dict["scripts"]:
-        main_list.append(script)
+    for config_file in configs_list:
+        main_list += parse_config_file(config_file)
+
+    if main_list == []:
+        logging.error("No valid config files to parse, serving only standard python metrics")
 
     # main part of program that will go through all scripts in the list and run the gt command for each
     for item in main_list:
         metric_name = item["metric"]
         metric_errors = "{0}_errors_total".format(metric_name)
-        script_interval = int(item["interval"])
-        metric_type = item["TYPE"]
-        metric_help = item["HELP"]
+        script_interval = int(item.get("interval", default_interval))
+        metric_type = item.get("TYPE", default_metric_type)
+        metric_help = item.get("HELP", default_metric_help)
         # save script with parameters in a string; it will be passed as argument to gt command
         script = item["script"]
         command = script
-        for param in item["params"]:
-            command += " {0}".format(param)
-
-        # we define a separate dictionary for each script as we'll add to it some item
-        # specific labels; we don't want to modify the global one
-        local_labels_dict = global_labels_dict.copy()
-        # we do the same as above for the list
-        local_labels_keys_list = global_labels_keys_list.copy()
-
-        # if we have local labels defined, we are adding them here
         try:
-            local_labels = item["labels"]
+            for param in item["params"]:
+                command += " {0}".format(param)
         except KeyError:
-            local_labels = {}
-        local_labels_keys_list = local_labels_keys_list + list(local_labels.keys())
-        for label in local_labels.keys():
-            local_labels_dict[label] = local_labels[label]
+            pass
 
-        # we add a new label named "component" but first we check that no label named like this was already defined
-        # in the config file; in that case, we don't want to delete the original but rename the label name and
-        # preserve it's value; we also write a WARNING log entry describing this situation
-        if "component" in local_labels_dict.keys():
-            local_labels_dict["user_defined_component"] = local_labels_dict.pop("component")
-            logging.warning("Found <component> label defined in config file, automatically renamed <user_defined_component>")
-        for pos, val in enumerate(local_labels_keys_list):
-            if val == "component":
-                local_labels_keys_list[pos] = "user_defined_component"
-
-        local_labels_keys_list.append("component")
+        labels_dict = item.get("labels", {})
         # and add the value "main" to the corresponding labels dict key (we'll overwrite it later where necessary)
-        local_labels_dict["component"] = "main"
+        labels_dict["component"] = "main"
+        labels_list = list(labels_dict.keys())
 
         # instantiate the prometheus counter metrics for the script errors item
         try:
-            prometheus_metric_errors = Counter(metric_errors, metric_help, local_labels_keys_list)
+            prometheus_metric_errors = Counter(metric_errors, metric_help, labels_list)
         # if it was already instantiated, just pass
         except ValueError:
             pass
 
         # save the command, item and the error metric in a dictionary
         param_dict = {"cmd": command, "item": item, "prom_metric_err": prometheus_metric_errors,
-        "local_labels_keys_list": local_labels_keys_list, "local_labels_dict": local_labels_dict}
+        "labels_list": labels_list, "labels_dict": labels_dict}
         # this list will hold 2 items, first one is the run_ext_script function, second one is
         # the dictionary defined above; we'll use this when we launch the threads for all items
         item_list = [run_ext_script, param_dict]
