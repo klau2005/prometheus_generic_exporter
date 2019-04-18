@@ -1,3 +1,12 @@
+## [0.8.2] - 2019.04.18
+### Changed
+
+### Added
+
+### Fixed
+- removed unnecessary pass and added one second sleep when querying the queue for new jobs
+- commented-out the metric_type (not used for now but will probably used in the future)
+
 ## [0.8.1] - 2019.03.25
 ### Changed
 

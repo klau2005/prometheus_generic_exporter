@@ -13,8 +13,8 @@ except ImportError:
     sys.exit(65)
 
 __author__ = "Claudiu Tomescu"
-__version__ = "0.8.1"
-__date__ = "March 2019"
+__version__ = "0.8.2"
+__date__ = "April 2019"
 __maintainer__ = "Claudiu Tomescu"
 __email__ = "klau2005@gmail.com"
 __status__ = "Production"
@@ -25,7 +25,9 @@ cwd = os.getcwd()
 job_queue = queue.Queue()
 metrics_port = os.environ.get("METRICS_PORT", 8000)
 default_interval = 600
-default_metric_type = "Gauge"
+# in the future, we intend to use the metric type for creating the proper prometheus metric
+# for now, we use the default of Gauge
+# default_metric_type = "Gauge"
 default_metric_help = "Generic metric HELP"
 log_levels = {"CRITICAL": 50, "ERROR": 40, "WARNING": 30, "INFO": 20, "DEBUG": 10, "NOTSET": 0}
 log_level_name = os.environ.get("LOG_LEVEL", "INFO")
@@ -61,7 +63,9 @@ def run_ext_script(**kwargs):
     item = kwargs["item"]
     prom_metric_name = item["metric"]
     prometheus_metric_errors = kwargs["prom_metric_err"]
-    metric_type = item.get("TYPE", default_metric_type)
+    # in the future, we intend to use the metric type for creating the proper prometheus metric
+    # for now, we use the default of Gauge
+    # metric_type = item.get("TYPE", default_metric_type)
     metric_help = item.get("HELP", default_metric_help)
     labels_dict = kwargs["labels_dict"]
     labels_list = kwargs["labels_list"]
@@ -217,7 +221,9 @@ def main():
         metric_name = item["metric"]
         metric_errors = "{0}_errors_total".format(metric_name)
         script_interval = int(item.get("interval", default_interval))
-        metric_type = item.get("TYPE", default_metric_type)
+        # in the future, we intend to use the metric type for creating the proper prometheus metric
+        # for now, we use the default of Gauge
+        # metric_type = item.get("TYPE", default_metric_type)
         metric_help = item.get("HELP", default_metric_help)
         # save script with parameters in a string; it will be passed as argument to gt command
         script = item["script"]
@@ -265,8 +271,8 @@ def main():
             queue_item = job_queue.get(block=False)
         except queue.Empty:
             logging.debug("There are no items in the queue right now...")
-            # if queue is empty for now, just pass
-            pass
+            # if queue is empty for now, sleep for one second
+            time.sleep(1)
         else:
             job_queue.task_done()
             # if queue has items, get them one by one and run them (we have functions and
