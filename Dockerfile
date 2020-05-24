@@ -1,7 +1,7 @@
 FROM ubuntu:16.04
 
 LABEL maintainer="Claudiu <klau2005@gmail.com>"
-LABEL version="0.8.2"
+LABEL version="0.8.3"
 
 WORKDIR /prom_exporter
 

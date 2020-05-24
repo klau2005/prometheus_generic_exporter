@@ -1,22 +1,18 @@
 '''Run external scripts/commands and export their output as prometheus metrics'''
 
-try:
-    import ast, glob, json, os, sys, time
-    import logging
-    import schedule
-    import threading
-    import queue
-    from subprocess import getstatusoutput as gt
-    from prometheus_client import start_http_server, Counter, Gauge
-except ImportError:
-    print("could not load needed modules, exiting...")
-    sys.exit(65)
+import ast, glob, json, os, sys, time
+import logging
+import schedule
+import threading
+import queue
+from subprocess import getstatusoutput as gt
+from prometheus_client import start_http_server, Counter, Gauge
 
 __author__ = "Claudiu Tomescu"
-__version__ = "0.8.2"
-__date__ = "April 2019"
+__version__ = "0.8.3"
+__date__ = "May 2020"
 __maintainer__ = "Claudiu Tomescu"
-__email__ = "klau2005@gmail.com"
+__email__ = "klau2005@tutanota.com"
 __status__ = "Production"
 
 ### Variables ###
