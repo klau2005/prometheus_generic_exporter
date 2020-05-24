@@ -1,3 +1,11 @@
+## [0.8.3] - 2020.05.24
+### Changed
+* try-catch around module import #1
+
+### Added
+
+### Fixed
+
 ## [0.8.2] - 2019.04.18
 ### Changed
 
