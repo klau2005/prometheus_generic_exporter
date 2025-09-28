@@ -9,8 +9,8 @@ from subprocess import getstatusoutput as gt
 from prometheus_client import start_http_server, Counter, Gauge
 
 __author__ = "Claudiu Tomescu"
-__version__ = "0.8.3"
-__date__ = "May 2020"
+__version__ = "0.9.0"
+__date__ = "Sep 2025"
 __maintainer__ = "Claudiu Tomescu"
 __email__ = "klau2005@tutanota.com"
 __status__ = "Production"

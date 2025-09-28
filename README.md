@@ -1,6 +1,6 @@
 Custom collector written in Python 3 that can run any external script/command and export the output as prometheus metrics. The scripts are run at the desired interval by the scheduler, like a cron job.
 
-For this to run, it needs one or more `*.json` files with the following format:
+For this to run, it needs one or more `*.json` files (in the configs folder) with the following format:
 
 ```
 {
@@ -32,3 +32,5 @@ The scripts can either be run as-is, the collector captures their output and if 
 In this case, 4 new timeseries will be created with the desired metric name but with the label `component` holding the value of the component. Example:
 `test_status{component="health",...}` (there will be more labels added, defined in the global_labels section and in each script section).
 Both `global_labels` and `labels` sections can be omitted if not needed. In fact, the module can start with a config file as simple as `{"scripts": []}` (in this case, no script/command will run).
+
+For a quick start, there is an example config file (in the configs folder) and a sample script (in the scripts folder) that will generate your first metrics. Use them as a guideline and add your own.

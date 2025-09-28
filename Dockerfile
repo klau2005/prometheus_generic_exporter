@@ -1,14 +1,13 @@
-FROM ubuntu:16.04
+FROM python:3.13-trixie
 
-LABEL maintainer="Claudiu <klau2005@gmail.com>"
-LABEL version="0.8.3"
+LABEL maintainer="Claudiu Tomescu<klau2005@tutanota.com>"
+LABEL version="0.9.0"
 
 WORKDIR /prom_exporter
 
 COPY . ./
 
-RUN apt-get update \
-    && apt-get install -y python3 python3-pip curl\
+RUN apt update \
     && pip3 install setuptools\
     && pip3 install --no-cache-dir -r requirements.txt
 

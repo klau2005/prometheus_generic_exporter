@@ -1,3 +1,14 @@
+## [0.9.0] - 2025.09.27
+### Changed
+- updated base image to python:3.13-trixie (Debian Trixie/13 based OS, Python 3.13)
+- updated requirements.txt to recent libraries versions (#2)
+
+### Added
+- added exemple JSON config file
+- added example script to produce example metrics
+
+### Fixed
+
 ## [0.8.3] - 2020.05.24
 ### Changed
 - try-catch around module import (#1)
