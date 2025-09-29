@@ -1,7 +1,7 @@
 FROM python:3.13-trixie
 
 LABEL maintainer="Claudiu Tomescu<klau2005@tutanota.com>"
-LABEL version="0.9.0"
+LABEL version="0.10.0"
 
 WORKDIR /prom_exporter
 

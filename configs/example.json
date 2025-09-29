@@ -5,7 +5,7 @@
     "stage": "Production"
   },
   "scripts": [
-    {"script": "scripts/test.sh", "interval": "10", "metric": "test_status",
+    {"script": "bash scripts/test.sh", "interval": "10", "metric": "test_status",
     "params": ["0.3", 16], "HELP": "Test metric", "TYPE": "gauge",
     "labels": {"project": "Test project"}}
   ]

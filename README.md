@@ -1,3 +1,5 @@
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 Custom collector written in Python 3 that can run any external script/command and export the output as prometheus metrics. The scripts are run at the desired interval by the scheduler, like a cron job.
 
 For this to run, it needs one or more `*.json` files (in the configs folder) with the following format:
@@ -5,22 +7,22 @@ For this to run, it needs one or more `*.json` files (in the configs folder) wit
 ```
 {
   "global_labels": {
-    "dc": "TM01",
-    "room": "SCA",
+    "dc": "DC01",
+    "room": "Room1",
     "stage": "Production"
   },
   "scripts": [
-    {"script": "scripts/mc4_check.py", "interval": "60", "metric": "mc4_status",
-    "params": ["prd-10017-mc4", "svc", 8084], "HELP": "Check MConnect4 Application", "TYPE": "gauge",
-    "labels": {"project": "10017 - DTAG PROD"}},
-    {"script": "scripts/dps_check.py", "interval": "120", "metric": "dps_status",
-    "params": ["prd-10043-dps", "tbox", 16080], "HELP": "Check DPS Application", "TYPE": "gauge",
-    "labels": {"project": "10043 - DPS PROD"}}
+    {"script": "python3 scripts/app1_check.py", "interval": "60", "metric": "app1_status",
+    "params": ["prd-001-app1", "svc", 8084], "HELP": "Check Application1 Status", "TYPE": "gauge",
+    "labels": {"project": "001 - Project 1"}},
+    {"script": "bash scripts/app2_check.sh", "interval": "30", "metric": "app2_status",
+    "params": ["prd-002-app2", "svc", 8085], "HELP": "Check Application2 Status", "TYPE": "gauge",
+    "labels": {"project": "002 - Project 2"}}
   ]
 }
 ```
 
-In this file, we define each external script/command that needs to be run as an item with a couple of parameters: the script name (keep in mind that it should have execute permissions), the interval at which it will be run by the scheduler (in seconds), the desired prometheus metric name, the parameters that need to be passed to the script (if any) and finally the prometheus specific details, HELP and metric TYPE.
+In this file, we define each external script/command that needs to be run as an item with a couple of parameters: the script name (prepended by the executable, bash, python, etc), the interval at which it will be run by the scheduler (in seconds), the desired prometheus metric name, the parameters that need to be passed to the script (if any) and finally the prometheus specific details, HELP and metric TYPE.
 `interval`, `TYPE`, `HELP` can be omited, they have default values (`interval` - 600 seconds, `TYPE` - gauge and a generic `HELP` message. Also, the `params` section can be omitted altogether if the script takes no parameters.
 
 If we have the same label both in the main `global_labels` section and in a `script` section, the global one will be overwritten.

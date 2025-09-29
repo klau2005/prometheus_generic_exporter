@@ -6,11 +6,12 @@ import logging
 import schedule
 import threading
 import queue
-from subprocess import getstatusoutput as gt
+import socket
+from subprocess import run as run_cmd
 from prometheus_client import start_http_server, Counter, Gauge
 
 __author__ = "Claudiu Tomescu"
-__version__ = "0.9.0"
+__version__ = "0.10.0"
 __date__ = "Sep 2025"
 __maintainer__ = "Claudiu Tomescu"
 __email__ = "klau2005@tutanota.com"
@@ -20,6 +21,8 @@ __status__ = "Production"
 configs_list = glob.glob("configs/*.json")
 cwd = os.getcwd()
 job_queue = queue.Queue()
+hostname = socket.gethostname()
+ip_addr = socket.gethostbyname(hostname)
 metrics_port = os.environ.get("METRICS_PORT", 8000)
 default_interval = 600
 # in the future, we intend to use the metric type for creating the proper prometheus metric
@@ -58,13 +61,13 @@ def run_ext_script(**kwargs):
     """
 
     cmd = kwargs["cmd"]
-    # run gt command for each component we need to test and capture status code and output
+    # run command for each component we need to test and capture status code and output
     logging.debug("Executing external script with args: '{0}'".format(cmd))
-    result = gt(cmd)
+    result = run_cmd(cmd, capture_output=True, text=True)
     logging.debug("Got following result (exit code + output):")
-    logging.debug(result)
-    exit_code = result[0]
-    output = result[1]
+    logging.debug("{0}: {1}".format(result.returncode, result.stdout))
+    exit_code = result.returncode
+    output = result.stdout.rstrip("\n")
     item = kwargs["item"]
     prom_metric_name = item["metric"]
     prometheus_metric_errors = kwargs["prom_metric_err"]
@@ -78,7 +81,7 @@ def run_ext_script(**kwargs):
     # test if exit code is success
     if exit_code != 0:
         logging.warning("External command '{0}' returned error:".format(cmd))
-        logging.warning("Result: '{0}'".format(result))
+        logging.warning("Result: '{0}'".format(result.stderr.rstrip("\n")))
         prometheus_metric_errors.labels(**labels_dict).inc()
     else:
         # if external script/command exited with 0, we start processing the result;
@@ -245,7 +248,7 @@ def main():
             "No valid config files to parse, serving only standard python metrics"
         )
 
-    # main part of program that will go through all scripts in the list and run the gt command for each
+    # main part of program that will go through all scripts in the list and run the command for each
     for item in main_list:
         metric_name = item["metric"]
         metric_errors = "{0}_errors_total".format(metric_name)
@@ -254,7 +257,7 @@ def main():
         # for now, we use the default of Gauge
         # metric_type = item.get("TYPE", default_metric_type)
         metric_help = item.get("HELP", default_metric_help)
-        # save script with parameters in a string; it will be passed as argument to gt command
+        # save script with parameters in a string; it will be passed as argument to the command
         script = item["script"]
         command = script
         try:
@@ -262,6 +265,7 @@ def main():
                 command += " {0}".format(param)
         except KeyError:
             pass
+        command = command.split()
 
         labels_dict = item.get("labels", {})
         # and add the value "main" to the corresponding labels dict key (we'll overwrite it later where necessary)
@@ -298,8 +302,10 @@ def main():
 
     # start the http server to expose the prometheus metrics
     logging.info("Starting web-server...")
-    start_http_server(metrics_port, "0.0.0.0")
-    logging.info("Server started and listening at 0.0.0.0:{0}".format(metrics_port))
+    start_http_server(metrics_port, ip_addr)
+    logging.info(
+        "Server started and listening at {0}:{1}".format(ip_addr, metrics_port)
+    )
     # enter the main scheduler loop
     while True:
         # start the scheduling

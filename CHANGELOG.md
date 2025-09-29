@@ -1,3 +1,13 @@
+## [0.10.0] - 2025.09.29
+### Changed
+
+### Added
+- added pre-commit hooks (black and bandit)
+
+### Fixed
+- replaced vulnerable subprocess.getstatusoutput method for executing scripts
+- HTTP server now listens to main network interface instead of all interfaces
+
 ## [0.9.0] - 2025.09.27
 ### Changed
 - updated base image to python:3.13-trixie (Debian Trixie/13 based OS, Python 3.13)
