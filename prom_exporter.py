@@ -8,7 +8,6 @@ import logging
 import os
 import queue
 import socket
-import sys
 import threading
 import time
 from subprocess import run as run_cmd
@@ -30,11 +29,11 @@ job_queue = queue.Queue()
 hostname = socket.gethostname()
 ip_addr = socket.gethostbyname(hostname)
 metrics_port = os.environ.get("METRICS_PORT", 8000)
-default_interval = 600
+DEFAULT_INTERVAL = 600
 # in the future, we intend to use the metric type for creating the proper prometheus metric
 # for now, we use the default of Gauge
 # default_metric_type = "Gauge"
-default_metric_help = "Generic metric HELP"
+DEFAULT_METRIC_HELP = "Generic metric HELP"
 log_levels = {
     "CRITICAL": 50,
     "ERROR": 40,
@@ -45,9 +44,9 @@ log_levels = {
 }
 log_level_name = os.environ.get("LOG_LEVEL", "INFO")
 log_level = log_levels[log_level_name]
-log_fmt = "[%(asctime)s] [%(levelname)s] %(message)s"
+LOG_FMT = "[%(asctime)s] [%(levelname)s] %(message)s"
 
-logging.basicConfig(level=log_level, datefmt="%Y-%m-%d %H:%M:%S %z", format=log_fmt)
+logging.basicConfig(level=log_level, datefmt="%Y-%m-%d %H:%M:%S %z", format=LOG_FMT)
 logging.info('Starting Generic Prometheus Exporter version "{0}"'.format(__version__))
 logging.info("Using log level {0}".format(log_level_name))
 # for the schedule module, we set the log level as WARNING as it is too noisy at INFO level
@@ -69,7 +68,7 @@ def run_ext_script(**kwargs):
     cmd = kwargs["cmd"]
     # run command for each component we need to test and capture status code and output
     logging.debug("Executing external script with args: '{0}'".format(cmd))
-    result = run_cmd(cmd, capture_output=True, text=True)
+    result = run_cmd(cmd, capture_output=True, text=True, check=False)
     logging.debug("Got following result (exit code + output):")
     logging.debug("{0}: {1}".format(result.returncode, result.stdout))
     exit_code = result.returncode
@@ -80,7 +79,7 @@ def run_ext_script(**kwargs):
     # in the future, we intend to use the metric type for creating the proper prometheus metric
     # for now, we use the default of Gauge
     # metric_type = item.get("TYPE", default_metric_type)
-    metric_help = item.get("HELP", default_metric_help)
+    metric_help = item.get("HELP", DEFAULT_METRIC_HELP)
     labels_dict = kwargs["labels_dict"]
     labels_list = kwargs["labels_list"]
 
@@ -104,7 +103,7 @@ def run_ext_script(**kwargs):
             return
         # first check if the output returned by script is json/dict
         if isinstance(output, dict):
-            for key, value in output.items():
+            for key in output.keys():
                 # we set the value of the <key> for the "component" label in the labels dict
                 labels_dict["component"] = key
 
@@ -183,7 +182,7 @@ def parse_config_file(f):
 
     # Load json file with list of scripts to schedule and run
     try:
-        with open(f) as config:
+        with open(f, encoding="UTF-8") as config:
             scripts_dict = json.load(config)
     except PermissionError:
         logging.error("No permission to read {0}/{1} file".format(cwd, f))
@@ -238,6 +237,10 @@ def parse_config_file(f):
 
 
 def main():
+    """
+    main function where we start the Prometheus HTTP server
+    and we enter the scheduler loop
+    """
 
     global configs_list
     global job_queue
@@ -258,11 +261,11 @@ def main():
     for item in main_list:
         metric_name = item["metric"]
         metric_errors = "{0}_errors_total".format(metric_name)
-        script_interval = int(item.get("interval", default_interval))
+        script_interval = int(item.get("interval", DEFAULT_INTERVAL))
         # in the future, we intend to use the metric type for creating the proper prometheus metric
         # for now, we use the default of Gauge
         # metric_type = item.get("TYPE", default_metric_type)
-        metric_help = item.get("HELP", default_metric_help)
+        metric_help = item.get("HELP", DEFAULT_METRIC_HELP)
         # save script with parameters in a string; it will be passed as argument to the command
         script = item["script"]
         command = script
