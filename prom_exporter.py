@@ -91,7 +91,8 @@ def run_ext_script(**kwargs):
     else:
         # if external script/command exited with 0, we start processing the result;
         # the subprocess function returns the output as string; we can see what this string
-        # contains by trying to convert the output to a dict/float (string types will generate error)
+        # contains by trying to convert the output to a dict/float
+        # (string types will generate error)
         try:
             output = ast.literal_eval(output)
         except ValueError:
@@ -130,7 +131,8 @@ def run_ext_script(**kwargs):
                         prom_metric_obj.labels(**labels_dict).set(output[key])
                     except ValueError:
                         # ValueError here probably means the labels defined when the prometheus
-                        # metric was instantiated don't match the ones passed when setting the metric value
+                        # metric was instantiated don't match the ones passed
+                        # when setting the metric value
                         logging.error("Labels mismatch:")
                         logging.error(f"{labels_list} - {labels_dict.keys()}")
                     else:
@@ -203,15 +205,17 @@ def parse_config_file(f):
     # check if the file has a global_labels section
     global_labels = scripts_dict.get("global_labels", {})
 
-    # iterate over each itm in the scripts list and add the global labels to the local ones (where they exist)
+    # iterate over each item in the scripts list and add the global labels
+    # to the local ones (where they exist)
     for script in scripts_list:
         local_labels = script.get("labels", {})
         labels = global_labels.copy()
         labels.update(local_labels)
         script["labels"] = labels
 
-        # we add a new label named "component" but first we check that no label named like this was already defined
-        # in the config file; in that case, we don't want to delete the original but rename the label name and
+        # we add a new label named "component" but first we check that no label
+        # named like this was already defined in the config file
+        # in that case, we don't want to delete the original but rename the label name and
         # preserve it's value; we also write a WARNING log entry describing this situation
         if "component" in script["labels"].keys():
             script["labels"]["user_defined_component"] = script["labels"].pop(
@@ -265,7 +269,8 @@ def main():
         command = command.split()
 
         labels_dict = item.get("labels", {})
-        # and add the value "main" to the corresponding labels dict key (we'll overwrite it later where necessary)
+        # and add the value "main" to the corresponding labels dict key
+        # (we'll overwrite it later where necessary)
         labels_dict["component"] = "main"
         labels_list = list(labels_dict.keys())
 
