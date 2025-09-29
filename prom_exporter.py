@@ -47,8 +47,8 @@ log_level = log_levels[log_level_name]
 LOG_FMT = "[%(asctime)s] [%(levelname)s] %(message)s"
 
 logging.basicConfig(level=log_level, datefmt="%Y-%m-%d %H:%M:%S %z", format=LOG_FMT)
-logging.info('Starting Generic Prometheus Exporter version "{0}"'.format(__version__))
-logging.info("Using log level {0}".format(log_level_name))
+logging.info(f'Starting Generic Prometheus Exporter version "{__version__}"')
+logging.info(f"Using log level {log_level_name}")
 # for the schedule module, we set the log level as WARNING as it is too noisy at INFO level
 schedule.logger.setLevel(logging.WARNING)
 
@@ -67,10 +67,10 @@ def run_ext_script(**kwargs):
 
     cmd = kwargs["cmd"]
     # run command for each component we need to test and capture status code and output
-    logging.debug("Executing external script with args: '{0}'".format(cmd))
+    logging.debug(f'Executing external script with args: "{cmd}"')
     result = run_cmd(cmd, capture_output=True, text=True, check=False)
     logging.debug("Got following result (exit code + output):")
-    logging.debug("{0}: {1}".format(result.returncode, result.stdout))
+    logging.debug(f"{result.returncode}: {result.stdout}")
     exit_code = result.returncode
     output = result.stdout.rstrip("\n")
     item = kwargs["item"]
@@ -85,8 +85,8 @@ def run_ext_script(**kwargs):
 
     # test if exit code is success
     if exit_code != 0:
-        logging.warning("External command '{0}' returned error:".format(cmd))
-        logging.warning("Result: '{0}'".format(result.stderr.rstrip("\n")))
+        logging.warning(f"External command '{cmd}' returned error:")
+        logging.warning(f'Result: {result.stderr.rstrip("\n")}')
         prometheus_metric_errors.labels(**labels_dict).inc()
     else:
         # if external script/command exited with 0, we start processing the result;
@@ -97,7 +97,7 @@ def run_ext_script(**kwargs):
         except ValueError:
             # looks this is not a supported type so we'll generate a helpful log warning message
             logging.warning("External command returned unsupported output type:")
-            logging.warning("Output: '{0}', Type: '{1}'".format(output, type(output)))
+            logging.warning(f'Output: "{output}", Type: "{type(output)}"')
             # and we increment the metric error value for this item
             prometheus_metric_errors.labels(**labels_dict).inc()
             return
@@ -122,9 +122,7 @@ def run_ext_script(**kwargs):
                                 # if we've come so far, it means the metric was already instantiated
                                 # and we're trying to use different labels for the same metric name
                                 logging.error("Invalid combination of metric{labels}:")
-                                logging.error(
-                                    "{0}{1}".format(prom_metric_name, labels_dict)
-                                )
+                                logging.error(f"{prom_metric_name}{labels_dict}")
                 else:
                     # in case the metric was instantiated for the first time, we save it in a global
                     # list and set it's value based on the script output
@@ -134,9 +132,7 @@ def run_ext_script(**kwargs):
                         # ValueError here probably means the labels defined when the prometheus
                         # metric was instantiated don't match the ones passed when setting the metric value
                         logging.error("Labels mismatch:")
-                        logging.error(
-                            "{0} - {1}".format(labels_list, labels_dict.keys())
-                        )
+                        logging.error(f"{labels_list} - {labels_dict.keys()}")
                     else:
                         prom_metrics_list.append(prom_metric_obj)
 
@@ -163,9 +159,7 @@ def run_ext_script(**kwargs):
                                 # if we've come so far, it means the metric was already instantiated
                                 # and we're trying to use different labels for the same metric name
                                 logging.error("Invalid combination of metric{labels}:")
-                                logging.error(
-                                    "{0}{1}".format(prom_metric_name, labels_dict)
-                                )
+                                logging.error(f"{prom_metric_name}{labels_dict}")
                 else:
                     # in case the metric was instantiated for the first time, we save it in a global
                     # list and set it's value based on the script output
@@ -185,13 +179,11 @@ def parse_config_file(f):
         with open(f, encoding="UTF-8") as config:
             scripts_dict = json.load(config)
     except PermissionError:
-        logging.error("No permission to read {0}/{1} file".format(cwd, f))
+        logging.error(f"No permission to read {cwd}/{f} file")
         return []
     # if file is not in valid JSON format, log this and exit
     except ValueError:
-        logging.error(
-            "Provided config file {0}/{1} is not a valid JSON file".format(cwd, f)
-        )
+        logging.error(f"Provided config file {cwd}/{f} is not a valid JSON file")
         return []
 
     # start validating the config file structure
@@ -199,16 +191,12 @@ def parse_config_file(f):
         scripts_list = scripts_dict["scripts"]
     except KeyError:
         logging.error(
-            "Provided config file {0}/{1} does not have the proper structure".format(
-                cwd, f
-            )
+            f"Provided config file {cwd}/{f} does not have the proper structure"
         )
         return []
     if not isinstance(scripts_list, list):
         logging.error(
-            "Provided config file {0}/{1} does not have the proper structure".format(
-                cwd, f
-            )
+            f"Provided config file {cwd}/{f} does not have the proper structure"
         )
         return []
 
@@ -260,7 +248,7 @@ def main():
     # main part of program that will go through all scripts in the list and run the command for each
     for item in main_list:
         metric_name = item["metric"]
-        metric_errors = "{0}_errors_total".format(metric_name)
+        metric_errors = f"{metric_name}_errors_total"
         script_interval = int(item.get("interval", DEFAULT_INTERVAL))
         # in the future, we intend to use the metric type for creating the proper prometheus metric
         # for now, we use the default of Gauge
@@ -271,7 +259,7 @@ def main():
         command = script
         try:
             for param in item["params"]:
-                command += " {0}".format(param)
+                command += f" {param}"
         except KeyError:
             pass
         command = command.split()
@@ -303,18 +291,14 @@ def main():
         # for each external script, add the list defined above in the queue at the predefined
         # interval; the main loop will continuosly get the scripts from the queue and run them
         logging.debug(
-            "New item '{0}' scheduled to run every '{1}' seconds".format(
-                item_list, script_interval
-            )
+            f"New item '{item_list}' scheduled to run every '{script_interval}' seconds"
         )
         schedule.every(script_interval).seconds.do(job_queue.put, item_list)
 
     # start the http server to expose the prometheus metrics
     logging.info("Starting web-server...")
     start_http_server(metrics_port, ip_addr)
-    logging.info(
-        "Server started and listening at {0}:{1}".format(ip_addr, metrics_port)
-    )
+    logging.info(f"Server started and listening at {ip_addr}:{metrics_port}")
     # enter the main scheduler loop
     while True:
         # start the scheduling
@@ -338,7 +322,7 @@ def main():
                 item_func(**item_kwargs)
 
             # start a new thread for each function; this will let us run the functions in parallel
-            logging.debug("Running '{0}' in new thread".format(queue_item))
+            logging.debug(f'Running "{queue_item}" in new thread')
             worker_thread = threading.Thread(target=job_func)
             worker_thread.start()
         time.sleep(1)
