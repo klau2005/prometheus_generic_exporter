@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """Run external scripts/commands and export their output as prometheus metrics"""
 
-import ast, glob, json, os, sys, time
+import ast
+import glob
+import json
 import logging
-import schedule
-import threading
+import os
 import queue
 import socket
+import sys
+import threading
+import time
 from subprocess import run as run_cmd
-from prometheus_client import start_http_server, Counter, Gauge
+
+import schedule
+from prometheus_client import Counter, Gauge, start_http_server
 
 __author__ = "Claudiu Tomescu"
 __version__ = "0.10.0"
