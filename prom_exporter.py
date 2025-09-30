@@ -47,8 +47,8 @@ log_level = log_levels[log_level_name]
 LOG_FMT = "[%(asctime)s] [%(levelname)s] %(message)s"
 
 logging.basicConfig(level=log_level, datefmt="%Y-%m-%d %H:%M:%S %z", format=LOG_FMT)
-logging.info(f'Starting Generic Prometheus Exporter version "{__version__}"')
-logging.info(f"Using log level {log_level_name}")
+logging.info('Starting Generic Prometheus Exporter version "%s"', __version__)
+logging.info("Using log level %s", log_level_name)
 # for the schedule module, we set the log level as WARNING as it is too noisy at INFO level
 schedule.logger.setLevel(logging.WARNING)
 
@@ -67,10 +67,10 @@ def run_ext_script(**kwargs):
 
     cmd = kwargs["cmd"]
     # run command for each component we need to test and capture status code and output
-    logging.debug(f'Executing external script with args: "{cmd}"')
+    logging.debug('Executing external script with args: "%s"', cmd)
     result = run_cmd(cmd, capture_output=True, text=True, check=False)
     logging.debug("Got following result (exit code + output):")
-    logging.debug(f"{result.returncode}: {result.stdout}")
+    logging.debug("%s: %s", result.returncode, result.stdout)
     exit_code = result.returncode
     output = result.stdout.rstrip("\n")
     item = kwargs["item"]
@@ -85,8 +85,8 @@ def run_ext_script(**kwargs):
 
     # test if exit code is success
     if exit_code != 0:
-        logging.warning(f"External command '{cmd}' returned error:")
-        logging.warning(f'Result: {result.stderr.rstrip("\n")}')
+        logging.warning('External command "%s" returned error:', cmd)
+        logging.warning("Result: %s", result.stderr.rstrip("\n"))
         prometheus_metric_errors.labels(**labels_dict).inc()
     else:
         # if external script/command exited with 0, we start processing the result;
@@ -98,7 +98,7 @@ def run_ext_script(**kwargs):
         except ValueError:
             # looks this is not a supported type so we'll generate a helpful log warning message
             logging.warning("External command returned unsupported output type:")
-            logging.warning(f'Output: "{output}", Type: "{type(output)}"')
+            logging.warning('Output: "%s", Type: "%s"', output, type(output))
             # and we increment the metric error value for this item
             prometheus_metric_errors.labels(**labels_dict).inc()
             return
@@ -123,7 +123,7 @@ def run_ext_script(**kwargs):
                                 # if we've come so far, it means the metric was already instantiated
                                 # and we're trying to use different labels for the same metric name
                                 logging.error("Invalid combination of metric{labels}:")
-                                logging.error(f"{prom_metric_name}{labels_dict}")
+                                logging.error("%s%s", prom_metric_name, labels_dict)
                 else:
                     # in case the metric was instantiated for the first time, we save it in a global
                     # list and set it's value based on the script output
@@ -134,7 +134,7 @@ def run_ext_script(**kwargs):
                         # metric was instantiated don't match the ones passed
                         # when setting the metric value
                         logging.error("Labels mismatch:")
-                        logging.error(f"{labels_list} - {labels_dict.keys()}")
+                        logging.error("%s - %s", labels_list, labels_dict.keys())
                     else:
                         prom_metrics_list.append(prom_metric_obj)
 
@@ -161,7 +161,7 @@ def run_ext_script(**kwargs):
                                 # if we've come so far, it means the metric was already instantiated
                                 # and we're trying to use different labels for the same metric name
                                 logging.error("Invalid combination of metric{labels}:")
-                                logging.error(f"{prom_metric_name}{labels_dict}")
+                                logging.error("%s%s", prom_metric_name, labels_dict)
                 else:
                     # in case the metric was instantiated for the first time, we save it in a global
                     # list and set it's value based on the script output
@@ -181,11 +181,11 @@ def parse_config_file(f):
         with open(f, encoding="UTF-8") as config:
             scripts_dict = json.load(config)
     except PermissionError:
-        logging.error(f"No permission to read {cwd}/{f} file")
+        logging.error("No permission to read %s/%s file", cwd, f)
         return []
     # if file is not in valid JSON format, log this and exit
     except ValueError:
-        logging.error(f"Provided config file {cwd}/{f} is not a valid JSON file")
+        logging.error("Provided config file %s/%s is not a valid JSON file", cwd, f)
         return []
 
     # start validating the config file structure
@@ -193,12 +193,12 @@ def parse_config_file(f):
         scripts_list = scripts_dict["scripts"]
     except KeyError:
         logging.error(
-            f"Provided config file {cwd}/{f} does not have the proper structure"
+            "Provided config file %s/%s does not have the proper structure", cwd, f
         )
         return []
     if not isinstance(scripts_list, list):
         logging.error(
-            f"Provided config file {cwd}/{f} does not have the proper structure"
+            "Provided config file %s/%s does not have the proper structure", cwd, f
         )
         return []
 
@@ -296,14 +296,16 @@ def main():
         # for each external script, add the list defined above in the queue at the predefined
         # interval; the main loop will continuosly get the scripts from the queue and run them
         logging.debug(
-            f"New item '{item_list}' scheduled to run every '{script_interval}' seconds"
+            'New item "%s" scheduled to run every "%s" seconds',
+            item_list,
+            script_interval,
         )
         schedule.every(script_interval).seconds.do(job_queue.put, item_list)
 
     # start the http server to expose the prometheus metrics
     logging.info("Starting web-server...")
     start_http_server(metrics_port, ip_addr)
-    logging.info(f"Server started and listening at {ip_addr}:{metrics_port}")
+    logging.info("Server started and listening at %s:%s", ip_addr, metrics_port)
     # enter the main scheduler loop
     while True:
         # start the scheduling
@@ -327,7 +329,7 @@ def main():
                 item_func(**item_kwargs)
 
             # start a new thread for each function; this will let us run the functions in parallel
-            logging.debug(f'Running "{queue_item}" in new thread')
+            logging.debug('Running "%s" in new thread', queue_item)
             worker_thread = threading.Thread(target=job_func)
             worker_thread.start()
         time.sleep(1)
