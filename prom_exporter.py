@@ -234,14 +234,12 @@ def main():
     and we enter the scheduler loop
     """
 
-    global configs_list
-    global job_queue
-
     # define list that will be the main object loaded in memory with all details
     # related to the scripts that will be run, interval, arguments, etc
     main_list = []
 
     for config_file in configs_list:
+        logging.debug("New config file parsed: %s", config_file)
         main_list += parse_config_file(config_file)
 
     if main_list == []:
