@@ -23,7 +23,10 @@ __email__ = "klau2005@tutanota.com"
 __status__ = "Production"
 
 ### Variables ###
-configs_list = glob.glob("configs/*.json")
+config_files_list = glob.glob("configs/*.json")
+# list that will be the main object loaded in memory with all details
+# related to the scripts that will be executed, interval, arguments, etc
+configs_list = []
 cwd = os.getcwd()
 job_queue = queue.Queue()
 hostname = socket.gethostname()
@@ -169,6 +172,18 @@ def run_ext_script(**kwargs):
                     prom_metric_obj.labels(**labels_dict).set(output)
 
 
+def parse_config_folder(configs_list):
+    """
+    generate list with all config files available
+    """
+
+    for config_file in config_files_list:
+        logging.debug("New config file parsed: %s", config_file)
+        configs_list += parse_config_file(config_file)
+
+    return configs_list
+
+
 def parse_config_file(f):
     """
     load the config file in json format, parse it and return a list from the scripts section;
@@ -235,15 +250,9 @@ def main():
     and we enter the scheduler loop
     """
 
-    # define list that will be the main object loaded in memory with all details
-    # related to the scripts that will be run, interval, arguments, etc
-    main_list = []
+    main_list = parse_config_folder(configs_list)
 
-    for config_file in configs_list:
-        logging.debug("New config file parsed: %s", config_file)
-        main_list += parse_config_file(config_file)
-
-    if main_list == []:
+    if len(main_list) == 0:
         logging.error(
             "No valid config files to parse, serving only standard python metrics"
         )
