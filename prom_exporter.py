@@ -286,7 +286,7 @@ def generate_params_dict(item):
         "labels_list": labels_list,
         "labels_dict": labels_dict,
     }
-    return param_dict
+    return param_dict, script_interval
 
 
 def main():
@@ -294,6 +294,11 @@ def main():
     main function where we start the Prometheus HTTP server
     and we enter the scheduler loop
     """
+
+    # start the http server to expose the prometheus metrics
+    logging.info("Starting web-server...")
+    start_http_server(metrics_port, ip_addr)
+    logging.info("Server started and listening at %s:%s", ip_addr, metrics_port)
 
     main_list = parse_config_folder(configs_list)
 
@@ -304,7 +309,7 @@ def main():
 
     # main part of program that will go through all scripts in the list and run the command for each
     for item in main_list:
-        param_dict = generate_params_dict(item)
+        param_dict, script_interval = generate_params_dict(item)
         # this list will hold 2 items, first one is the run_ext_script function, second one is
         # the dictionary generated above; we'll use this when we launch the threads for all items
         item_list = [run_ext_script, param_dict]
@@ -318,10 +323,6 @@ def main():
         )
         schedule.every(script_interval).seconds.do(job_queue.put, item_list)
 
-    # start the http server to expose the prometheus metrics
-    logging.info("Starting web-server...")
-    start_http_server(metrics_port, ip_addr)
-    logging.info("Server started and listening at %s:%s", ip_addr, metrics_port)
     # enter the main scheduler loop
     while True:
         # start the scheduling
