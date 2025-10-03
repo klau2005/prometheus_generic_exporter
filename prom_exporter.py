@@ -222,7 +222,8 @@ def parse_config_file(f):
                 "component"
             )
             logging.warning(
-                "Found <component> label defined in config file, automatically renamed to <user_defined_component>"
+                "Found <component> label defined in config file, "
+                "automatically renamed to <user_defined_component>"
             )
 
     return scripts_dict["scripts"]
