@@ -115,7 +115,7 @@ def run_ext_script(**kwargs):
                     # if a metric with this name was already instantiated, we can find
                     # it in the global list defined above
                     for obj in prom_metrics_list:
-                        if obj._name == prom_metric_name:
+                        if obj.describe()[0].name == prom_metric_name:
                             # try to set the metric value
                             try:
                                 obj.labels(**labels_dict).set(output[key])
@@ -153,7 +153,7 @@ def run_ext_script(**kwargs):
                     # if a metric with this name was already instantiated, we can find
                     # it in the global list defined above
                     for obj in prom_metrics_list:
-                        if obj._name == prom_metric_name:
+                        if obj.describe()[0].name == prom_metric_name:
                             # try to set the metric value
                             try:
                                 obj.labels(**labels_dict).set(output)
