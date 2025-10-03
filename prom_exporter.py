@@ -172,16 +172,16 @@ def run_ext_script(**kwargs):
                     prom_metric_obj.labels(**labels_dict).set(output)
 
 
-def parse_config_folder(configs_list):
+def parse_config_folder(c_list):
     """
     generate list with all config files available
     """
 
     for config_file in config_files_list:
         logging.debug("New config file parsed: %s", config_file)
-        configs_list += parse_config_file(config_file)
+        c_list += parse_config_file(config_file)
 
-    return configs_list
+    return c_list
 
 
 def parse_config_file(f):
