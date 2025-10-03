@@ -244,6 +244,51 @@ def parse_config_file(f):
     return scripts_dict["scripts"]
 
 
+def generate_params_dict(item):
+    """
+    Generate a command, item, error metric and labels dictionary
+    """
+    metric_name = item["metric"]
+    metric_errors = f"{metric_name}_errors_total"
+    script_interval = int(item.get("interval", DEFAULT_INTERVAL))
+    # in the future, we intend to use the metric type for creating the proper prometheus metric
+    # for now, we use the default of Gauge
+    # metric_type = item.get("TYPE", default_metric_type)
+    metric_help = item.get("HELP", DEFAULT_METRIC_HELP)
+    # save script with parameters in a string; it will be passed as argument to the command
+    script = item["script"]
+    command = script
+    try:
+        for param in item["params"]:
+            command += f" {param}"
+    except KeyError:
+        pass
+    command = command.split()
+
+    labels_dict = item.get("labels", {})
+    # and add the value "main" to the corresponding labels dict key
+    # (we'll overwrite it later where necessary)
+    labels_dict["component"] = "main"
+    labels_list = list(labels_dict.keys())
+
+    # instantiate the prometheus counter metrics for the script errors item
+    try:
+        prometheus_metric_errors = Counter(metric_errors, metric_help, labels_list)
+    # if it was already instantiated, just pass
+    except ValueError:
+        pass
+
+    # save the command, item and the error metric in a dictionary
+    param_dict = {
+        "cmd": command,
+        "item": item,
+        "prom_metric_err": prometheus_metric_errors,
+        "labels_list": labels_list,
+        "labels_dict": labels_dict,
+    }
+    return param_dict
+
+
 def main():
     """
     main function where we start the Prometheus HTTP server
@@ -259,46 +304,9 @@ def main():
 
     # main part of program that will go through all scripts in the list and run the command for each
     for item in main_list:
-        metric_name = item["metric"]
-        metric_errors = f"{metric_name}_errors_total"
-        script_interval = int(item.get("interval", DEFAULT_INTERVAL))
-        # in the future, we intend to use the metric type for creating the proper prometheus metric
-        # for now, we use the default of Gauge
-        # metric_type = item.get("TYPE", default_metric_type)
-        metric_help = item.get("HELP", DEFAULT_METRIC_HELP)
-        # save script with parameters in a string; it will be passed as argument to the command
-        script = item["script"]
-        command = script
-        try:
-            for param in item["params"]:
-                command += f" {param}"
-        except KeyError:
-            pass
-        command = command.split()
-
-        labels_dict = item.get("labels", {})
-        # and add the value "main" to the corresponding labels dict key
-        # (we'll overwrite it later where necessary)
-        labels_dict["component"] = "main"
-        labels_list = list(labels_dict.keys())
-
-        # instantiate the prometheus counter metrics for the script errors item
-        try:
-            prometheus_metric_errors = Counter(metric_errors, metric_help, labels_list)
-        # if it was already instantiated, just pass
-        except ValueError:
-            pass
-
-        # save the command, item and the error metric in a dictionary
-        param_dict = {
-            "cmd": command,
-            "item": item,
-            "prom_metric_err": prometheus_metric_errors,
-            "labels_list": labels_list,
-            "labels_dict": labels_dict,
-        }
+        param_dict = generate_params_dict(item)
         # this list will hold 2 items, first one is the run_ext_script function, second one is
-        # the dictionary defined above; we'll use this when we launch the threads for all items
+        # the dictionary generated above; we'll use this when we launch the threads for all items
         item_list = [run_ext_script, param_dict]
 
         # for each external script, add the list defined above in the queue at the predefined
