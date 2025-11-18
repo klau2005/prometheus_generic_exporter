@@ -7,9 +7,7 @@ WORKDIR /prom_exporter
 
 COPY . ./
 
-RUN apt update \
-    && pip3 install setuptools\
-    && pip3 install --no-cache-dir -r requirements.txt
+RUN apt update && pip3 install setuptools && pip3 install --no-cache-dir -r requirements.txt
 
 EXPOSE 8000
 
