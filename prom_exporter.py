@@ -71,7 +71,7 @@ def run_ext_script(**kwargs):
     cmd = kwargs["cmd"]
     # run command for each component we need to test and capture status code and output
     logging.debug('Executing external script with args: "%s"', cmd)
-    result = run_cmd(cmd, capture_output=True, text=True, check=False)
+    result = run_cmd(cmd, capture_output=True, text=True, check=False, shell=False)
     logging.debug("Got following result (exit code + output):")
     logging.debug("%s: %s", result.returncode, result.stdout)
     exit_code = result.returncode
