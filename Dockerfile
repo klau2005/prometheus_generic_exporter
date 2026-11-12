@@ -7,8 +7,10 @@ WORKDIR /prom_exporter
 
 COPY . ./
 
-RUN pip3 install setuptools && pip3 install --no-cache-dir -r requirements.txt
+RUN python3 -m pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 8000
+
+CMD [ "python3", "./prom_exporter.py" ]
 
 CMD [ "python3", "./prom_exporter.py" ]
