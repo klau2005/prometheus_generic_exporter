@@ -16,8 +16,8 @@ import schedule
 from prometheus_client import Counter, Gauge, start_http_server
 
 __author__ = "Claudiu Tomescu"
-__version__ = "0.10.0"
-__date__ = "Sep 2025"
+__version__ = "0.11.0"
+__date__ = "Nov 2026"
 __maintainer__ = "Claudiu Tomescu"
 __email__ = "klau2005@tutanota.com"
 __status__ = "Production"
