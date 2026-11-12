@@ -1,3 +1,11 @@
+## [0.11.0] - 2026.11.12
+### Changed
+- install python modules using pip module (isntead of pip executable)
+- use ENTRYPOINT instead of CMD in Dockerfile
+
+### Added
+- install extra python modules
+
 ## [0.10.0] - 2025.09.29
 ### Changed
 
