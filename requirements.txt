@@ -1,3 +1,8 @@
-prometheus-client==0.23.1
+kubernetes==37.0.2
+packaging==26.3
+prometheus-client==0.26.0
+PyYAML==6.0.3
+requests==2.34.2
 schedule==1.2.2
-requests==2.32.5
+setuptools==84.2.1
+urllib3==2.8.0
