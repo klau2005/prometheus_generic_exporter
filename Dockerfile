@@ -11,6 +11,4 @@ RUN python3 -m pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 8000
 
-CMD [ "python3", "./prom_exporter.py" ]
-
-CMD [ "python3", "./prom_exporter.py" ]
+ENTRYPOINT [ "python3", "./prom_exporter.py" ]
